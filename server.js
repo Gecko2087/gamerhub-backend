@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import gamesRoutes from './routes/games.js';
-import watchlistRoutes from './routes/watchlist.js';
+import gamesRoutes from './routes/gameRoutes.js';
+import profilesRoutes from './routes/profilesRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
@@ -14,7 +16,9 @@ app.use(express.json());
 
 // Rutas
 app.use('/api/games', gamesRoutes);
-app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/profiles', profilesRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Puerto
 const PORT = process.env.PORT || 4000;
