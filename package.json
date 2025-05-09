@@ -2,12 +2,12 @@
   "name": "gamerhub-backend",
   "version": "1.0.0",
   "description": "Backend para GamerHub",
-  "main": "server.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js",
-    "start": "node server.js"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
