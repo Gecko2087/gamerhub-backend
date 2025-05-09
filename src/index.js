@@ -11,9 +11,15 @@ import { authenticateToken } from '../middleware/auth.js';
 import { importPopularGames } from '../controllers/gameController.js';
 
 const app = express();
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://gamerhub-frontend.netlify.app'
+];
+
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true
   })
 );

@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 const userSchema = new mongoose.Schema({
   name: {
