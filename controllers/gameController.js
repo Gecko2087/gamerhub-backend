@@ -1,6 +1,7 @@
 import { searchGames, getGameDetails, getGamesByFilters } from '../services/rawgService.js';
 import Game from '../models/Game.js';
 import Profile from '../models/Profile.js';
+import { literalPattern } from '../middleware/gameQuery.js';
 
 // Función para mapear clasificaciones ESRB de RAWG a nuestro modelo
 const mapEsrbRating = (rawgRating) => {
@@ -117,16 +118,16 @@ const saveGamesFromRawg = async (rawgGames) => {
 
 export const search = async (req, res) => {
   try {
-    const { query, page = 1, pageSize = 20 } = req.query;
+    const { query = '', page = 1, pageSize = 20 } = req.query;
     
     // Primero buscar en nuestra base de datos
     const dbResults = await Game.find({ 
-      name: { $regex: query, $options: 'i' } 
+      name: { $regex: literalPattern(query), $options: 'i' }
     })
     .limit(parseInt(pageSize))
     .skip((parseInt(page) - 1) * parseInt(pageSize));
     
-    const count = await Game.countDocuments({ name: { $regex: query, $options: 'i' } });
+    const count = await Game.countDocuments({ name: { $regex: literalPattern(query), $options: 'i' } });
     
     // Si tenemos suficientes resultados en la base de datos, los devolvemos
     if (count >= parseInt(pageSize)) {
@@ -366,7 +367,7 @@ export const getAllGames = async (req, res) => {
     const { page = 1, pageSize = 20, search = '', genre = '', platform = '' } = req.query;
     const query = {};
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      query.name = { $regex: literalPattern(search), $options: 'i' };
     }
     if (genre) {
       query.genres = genre;

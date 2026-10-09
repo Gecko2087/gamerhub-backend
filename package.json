@@ -5,8 +5,8 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/index.js",
+    "test": "node --experimental-vm-modules --test --test-concurrency=1 tests/*.test.mjs",
+    "dev": "node --watch src/index.js",
     "start": "node src/index.js"
   },
   "keywords": [],
@@ -20,10 +20,9 @@
     "express": "^4.21.2",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.0.3",
-    "recharts": "^2.15.3"
+    "mongoose": "^7.0.3"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "mongodb-memory-server": "^11.3.0"
   }
 }

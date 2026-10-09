@@ -1,3 +1,4 @@
 export default function errorHandler(err, req, res, next) {
-  res.status(err.status || 500).json({ error: err.message || 'Error interno del servidor' });
+  const status = err.status || 500;
+  res.status(status).json({ error: status >= 500 ? 'Error interno del servidor' : (err.message || 'Solicitud inválida') });
 }

@@ -1,7 +1,4 @@
 import jwt from 'jsonwebtoken';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];

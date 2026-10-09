@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { demoGames, demoSearch } from './demoCatalog.js';
 
 const RAWG_API_URL = 'https://api.rawg.io/api';
 
 export const searchGames = async (query, page = 1, pageSize = 20) => {
+  if (process.env.DEMO_CATALOG === 'true') return demoSearch(query, page, pageSize);
   const API_KEY = process.env.RAWG_API_KEY;
   try {
     const response = await axios.get(`${RAWG_API_URL}/games`, {
@@ -21,6 +23,11 @@ export const searchGames = async (query, page = 1, pageSize = 20) => {
 };
 
 export const getGameDetails = async (id) => {
+  if (process.env.DEMO_CATALOG === 'true') {
+    const game = demoGames.find(item => String(item.id) === String(id));
+    if (!game) throw Object.assign(new Error('Juego no encontrado'), { status: 404 });
+    return game;
+  }
   const API_KEY = process.env.RAWG_API_KEY;
   try {
     // Asegurarse de que el ID sea un número
@@ -50,14 +57,15 @@ export const getGameDetails = async (id) => {
 };
 
 export const getGamesByFilters = async (filters, page = 1, pageSize = 20) => {
+  if (process.env.DEMO_CATALOG === 'true') return demoSearch('', page, pageSize, filters);
   const API_KEY = process.env.RAWG_API_KEY;
   try {
     const response = await axios.get(`${RAWG_API_URL}/games`, {
       params: {
+        ...filters,
         key: API_KEY,
         page,
-        page_size: pageSize,
-        ...filters
+        page_size: pageSize
       }
     });
     return response.data;

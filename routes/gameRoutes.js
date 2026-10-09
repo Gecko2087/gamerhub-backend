@@ -13,6 +13,7 @@ import {
   getAllGames  // Nuevo
 } from '../controllers/gameController.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { validateGameQuery } from '../middleware/gameQuery.js';
 
 // Middleware para verificar si el usuario es admin
 function adminMiddleware(req, res, next) {
@@ -21,6 +22,7 @@ function adminMiddleware(req, res, next) {
 }
 
 const router = express.Router();
+router.use(validateGameQuery);
 
 // Rutas públicas
 router.get('/search', search);
