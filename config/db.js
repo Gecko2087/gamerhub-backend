@@ -1,11 +1,9 @@
 import mongoose from 'mongoose';
 
-export default function connect() {
-  mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅  MongoDB online'))
-    .catch((err) => {
-      console.error(err);
-      process.exit(1);
-    });
+let connection;
+export default async function connect() {
+  if (mongoose.connection.readyState === 1) return mongoose;
+  if (!connection) connection = mongoose.connect(process.env.MONGODB_URI,
+    { serverSelectionTimeoutMS: 10000, maxPoolSize: 5 }).catch(error => { connection = null; throw error; });
+  return connection;
 }

@@ -16,6 +16,10 @@ export const getProfiles = async (req, res) => {
 export const getUserProfiles = async (req, res) => {
   try {
     const { userId } = req.params;
+    if (req.user.role !== 'admin' &&
+        String(userId).toLowerCase() !== String(req.user.userId).toLowerCase()) {
+      return res.status(403).json({ error: 'No tienes permiso para ver estos perfiles' });
+    }
     const profiles = await Profile.find({ userId: userId });
     res.json(profiles);
   } catch (error) {
