@@ -76,6 +76,36 @@ try {
     assert.equal((await call('/profiles/' + own.data[0]._id + '/watchlist', {
       token: a.data.token, method: 'POST', body: { gameId: game._id },
     })).response.status, 200);
+    process.env.GAME_CATALOG_PROVIDER = 'igdb';
+    process.env.IGDB_CLIENT_ID = 'test-client';
+    process.env.IGDB_CLIENT_SECRET = 'test-secret';
+    const originalPost = axios.post;
+    try {
+      axios.post = async url => {
+        if (url === 'https://id.twitch.tv/oauth2/token') {
+          return { data: { access_token: 'test-token', expires_in: 3600 } };
+        }
+        assert.equal(url, 'https://api.igdb.com/v4/games');
+        return { data: [{ id: 13537, name: 'Portal', cover: { image_id: 'co123' } }] };
+      };
+      const igdb = await call('/games/public?search=Portal', { token: a.data.token });
+      assert.equal(igdb.response.status, 200);
+      assert.equal(igdb.data.source, 'igdb');
+      const [igdbGame] = igdb.data.games;
+      assert.notEqual(igdbGame._id, game._id);
+      const saved = await call('/profiles/' + own.data[0]._id + '/watchlist', {
+        token: a.data.token, method: 'POST', body: { gameId: igdbGame._id },
+      });
+      assert.equal(saved.response.status, 200);
+      const { data: favorites } = await call('/profiles/' + own.data[0]._id + '/watchlist', { token: a.data.token });
+      assert(favorites.some(item => item._id === game._id));
+      assert(favorites.some(item => item._id === igdbGame._id));
+    } finally {
+      axios.post = originalPost;
+      delete process.env.GAME_CATALOG_PROVIDER;
+      delete process.env.IGDB_CLIENT_ID;
+      delete process.env.IGDB_CLIENT_SECRET;
+    }
   } finally {
     axios.get = originalGet;
     process.env.DEMO_CATALOG = 'true';

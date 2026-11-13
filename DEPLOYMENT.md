@@ -10,6 +10,8 @@ El frontend usa `VITE_API_URL=https://<backend>/api`. Esta variable es una URL p
 
 Para usar el catálogo real, configura `RAWG_API_KEY` como secreto del backend y cambia `DEMO_CATALOG` a `false`, conservando `DEMO_MODE=true`. El catálogo general y la búsqueda por título consultan RAWG. Los filtros por plataforma y género operan sobre los juegos guardados en MongoDB. Los favoritos siguen asociados a cada perfil temporal.
 
+Para usar IGDB en el catálogo público, configura `GAME_CATALOG_PROVIDER=igdb`, `DEMO_MODE=true` y `DEMO_CATALOG=false`. Guarda `IGDB_CLIENT_ID` e `IGDB_CLIENT_SECRET` en Render. Los juegos conservan un ID interno de MongoDB y los favoritos existentes siguen apuntando a sus registros originales. Los filtros consultan los títulos de IGDB que ya se guardaron en MongoDB.
+
 Verificación: `npm test` y `node tests/demo.integration.mjs`. El segundo utiliza MongoDB temporal descargado desde su fuente oficial, HTTP real, JWT y modelos originales; nunca conecta a la base histórica. `/api/health` confirma proceso HTTP, no prueba por sí solo disponibilidad de MongoDB.
 
 La limpieza del código no acredita que antiguos equipos o despliegues estén limpios. Revocar las credenciales de prueba que sigan activas y reemplazarlas antes de publicar.

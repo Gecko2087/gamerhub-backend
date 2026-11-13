@@ -1,5 +1,6 @@
 import { searchGames, getGameDetails, getGamesByFilters, browseRawg } from '../services/rawgService.js';
 import { demoGames } from '../services/demoCatalog.js';
+import { browseIgdb } from '../services/igdbService.js';
 import Game from '../models/Game.js';
 import Profile from '../models/Profile.js';
 import { literalPattern } from '../middleware/gameQuery.js';
@@ -366,6 +367,32 @@ export const getAllGames = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, search = '', genre = '', platform = '' } = req.query;
     const query = {};
+    if (req.path === '/public' && process.env.GAME_CATALOG_PROVIDER === 'igdb') {
+      if (genre || platform || Number(pageSize) > 40) {
+        query.igdbId = { $exists: true };
+      } else {
+        const result = await browseIgdb(search, Number(page), Number(pageSize));
+        const entries = result.games.filter(game => Number.isSafeInteger(game.id) && game.id > 0 && game.name);
+        const games = await Promise.all(entries.map(game => {
+          // The legacy unique rawgId index reserves negative values for IGDB.
+          const legacyKey = -game.id;
+          const imageId = game.cover?.image_id;
+          const image = typeof imageId === 'string' && /^[a-zA-Z0-9]+$/.test(imageId)
+            ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`
+            : '/covers/fallback.svg';
+          return Game.findOneAndUpdate({ rawgId: legacyKey }, { $set: {
+            igdbId: game.id, name: game.name, backgroundImage: image,
+            description: game.summary || 'Descripción no disponible.',
+            releaseDate: game.first_release_date ? new Date(game.first_release_date * 1000) : null,
+            rating: Math.max(0, Math.min(5, (game.rating || 0) / 20)), ageRating: 'M',
+            genres: (game.genres ?? []).map(item => item.name),
+            platforms: (game.platforms ?? []).map(item => item.name),
+          } }, { upsert: true, new: true });
+        }));
+        const total = (Number(page) - 1) * Number(pageSize) + games.length + Number(result.hasNext);
+        return res.json({ total, games, source: 'igdb' });
+      }
+    }
     if (req.path === '/public' && process.env.DEMO_MODE === 'true' && process.env.DEMO_CATALOG !== 'true') {
       if (!genre && !platform && Number(pageSize) <= 40) {
         const result = await browseRawg(search, Number(page), Number(pageSize));
@@ -390,7 +417,7 @@ export const getAllGames = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(pageSize));
-    res.json({ total, games });
+    res.json({ total, games, ...(query.igdbId ? { source: 'igdb' } : {}) });
   } catch (error) {
     if (error.status === 503) return res.status(503).json({ error: error.message });
     res.status(500).json({ error: 'Error al obtener todos los juegos' });

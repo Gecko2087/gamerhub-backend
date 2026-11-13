@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const gameSchema = new mongoose.Schema({
+  igdbId: Number,
   rawgId: {
     type: Number,
     unique: true,
