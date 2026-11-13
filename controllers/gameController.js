@@ -1,22 +1,22 @@
-import { searchGames, getGameDetails, getGamesByFilters } from '../services/rawgService.js';
+import { searchGames, getGameDetails, getGamesByFilters, browseRawg } from '../services/rawgService.js';
+import { demoGames } from '../services/demoCatalog.js';
 import Game from '../models/Game.js';
 import Profile from '../models/Profile.js';
 import { literalPattern } from '../middleware/gameQuery.js';
 
 // Función para mapear clasificaciones ESRB de RAWG a nuestro modelo
 const mapEsrbRating = (rawgRating) => {
-  if (!rawgRating) return 'E'; // Si no hay clasificación, asumir E (Everyone)
+  if (!rawgRating) return 'M';
   
   const rating = rawgRating.toLowerCase();
   
-  if (rating.includes('everyone') || rating === 'e' || rating === 'ec') return 'E';
   if (rating.includes('everyone 10+') || rating === 'e10+') return 'E10+';
+  if (rating.includes('everyone') || rating === 'e' || rating === 'ec') return 'E';
   if (rating.includes('teen') || rating === 't') return 'T';
   if (rating.includes('mature') || rating === 'm') return 'M';
   if (rating.includes('adults only') || rating === 'ao') return 'AO';
   
-  // Si no coincide con ninguno de los anteriores, clasificar como E por defecto
-  return 'E';
+  return 'M';
 };
 
 // Función auxiliar para guardar juegos de RAWG en la base de datos
@@ -366,6 +366,15 @@ export const getAllGames = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, search = '', genre = '', platform = '' } = req.query;
     const query = {};
+    if (req.path === '/public' && process.env.DEMO_MODE === 'true' && process.env.DEMO_CATALOG !== 'true') {
+      if (!genre && !platform && Number(pageSize) <= 40) {
+        const result = await browseRawg(search, Number(page), Number(pageSize));
+        const saved = await Promise.all(result.results.map(saveGameFromRawg));
+        const games = saved.filter(game => game?._id);
+        return res.json({ total: Math.min(result.count, Number(pageSize) * 100), games, source: 'rawg' });
+      }
+      query.$nor = demoGames.map(game => ({ rawgId: game.id, name: game.name }));
+    }
     if (search) {
       query.name = { $regex: literalPattern(search), $options: 'i' };
     }
@@ -383,6 +392,7 @@ export const getAllGames = async (req, res) => {
       .limit(parseInt(pageSize));
     res.json({ total, games });
   } catch (error) {
+    if (error.status === 503) return res.status(503).json({ error: error.message });
     res.status(500).json({ error: 'Error al obtener todos los juegos' });
   }
 };

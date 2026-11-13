@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import axios from 'axios';
 
 const database = await MongoMemoryServer.create();
 process.env.MONGODB_URI = database.getUri('gamerhub-test');
@@ -56,6 +57,29 @@ try {
   assert.equal((await call('/games/public?search=%28a%2B%29%2B%24', { token: a.data.token })).data.games.length, 0);
   for (const path of ['/games/search?query[]=a', '/games/public?genre[$ne]=x', '/games/popular?pageSize=0']) {
     assert.equal((await call(path, { token: a.data.token })).response.status, 400);
+  }
+  const originalGet = axios.get;
+  process.env.DEMO_CATALOG = 'false';
+  process.env.RAWG_API_KEY = 'test-placeholder';
+  try {
+    axios.get = async (url, { params }) => {
+      assert.equal(url, 'https://api.rawg.io/api/games');
+      assert.equal(params.search, 'Portal');
+      return { data: { count: 1, results: [{ id: 13537, name: 'Portal', released: '2007-10-10' }] } };
+    };
+    const liveCatalog = await call('/games/public?search=Portal', { token: a.data.token });
+    assert.equal(liveCatalog.response.status, 200);
+    assert.equal(liveCatalog.data.source, 'rawg');
+    const [game] = liveCatalog.data.games;
+    assert.equal(game.name, 'Portal');
+    assert.equal(game.ageRating, 'M');
+    assert.equal((await call('/profiles/' + own.data[0]._id + '/watchlist', {
+      token: a.data.token, method: 'POST', body: { gameId: game._id },
+    })).response.status, 200);
+  } finally {
+    axios.get = originalGet;
+    process.env.DEMO_CATALOG = 'true';
+    delete process.env.RAWG_API_KEY;
   }
   await User.updateOne({ _id: a.data.user.id }, { $set: { demoRequests: 250 } });
   const limited = await call('/profiles', { token: a.data.token });

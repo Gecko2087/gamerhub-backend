@@ -2,24 +2,33 @@ import axios from 'axios';
 import { demoGames, demoSearch } from './demoCatalog.js';
 
 const RAWG_API_URL = 'https://api.rawg.io/api';
+async function requestRawg(path, params = {}) {
+  const key = process.env.RAWG_API_KEY?.trim();
+  if (!key) throw Object.assign(new Error('RAWG requiere configuración.'), { status: 503 });
+  try {
+    const { data } = await axios.get(RAWG_API_URL + path, {
+      params: { ...params, key },
+      timeout: 8000,
+      maxRedirects: 0,
+    });
+    return data;
+  } catch (error) {
+    const status = error.response?.status === 404 ? 404 : 503;
+    throw Object.assign(new Error(status === 404 ? 'Juego no encontrado.' : 'RAWG no está disponible.'), { status });
+  }
+}
+
+export async function browseRawg(query, page, pageSize) {
+  const data = await requestRawg('/games', {
+    search: query || undefined, page, page_size: Math.min(pageSize, 40),
+    ordering: query ? undefined : '-added',
+  });
+  return { results: data.results, count: data.count };
+}
 
 export const searchGames = async (query, page = 1, pageSize = 20) => {
   if (process.env.DEMO_CATALOG === 'true') return demoSearch(query, page, pageSize);
-  const API_KEY = process.env.RAWG_API_KEY;
-  try {
-    const response = await axios.get(`${RAWG_API_URL}/games`, {
-      params: {
-        key: API_KEY,
-        search: query,
-        page,
-        page_size: pageSize
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error searching games:', error);
-    throw error;
-  }
+  return browseRawg(query, page, pageSize);
 };
 
 export const getGameDetails = async (id) => {
@@ -28,51 +37,15 @@ export const getGameDetails = async (id) => {
     if (!game) throw Object.assign(new Error('Juego no encontrado'), { status: 404 });
     return game;
   }
-  const API_KEY = process.env.RAWG_API_KEY;
-  try {
-    // Asegurarse de que el ID sea un número
-    const gameId = parseInt(id);
-    if (isNaN(gameId)) {
-      throw new Error('ID de juego inválido');
-    }
-
-    const response = await axios.get(`${RAWG_API_URL}/games/${gameId}`, {
-      params: {
-        key: API_KEY
-      }
-    });
-
-    if (!response.data) {
-      throw new Error('No se encontraron detalles del juego');
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error('Error getting game details:', error);
-    if (error.response?.status === 404) {
-      throw new Error('Juego no encontrado');
-    }
-    throw error;
+  if (!/^[1-9]\d{0,9}$/.test(String(id))) {
+    throw Object.assign(new Error('ID de juego inválido.'), { status: 400 });
   }
+  return requestRawg('/games/' + id);
 };
 
 export const getGamesByFilters = async (filters, page = 1, pageSize = 20) => {
   if (process.env.DEMO_CATALOG === 'true') return demoSearch('', page, pageSize, filters);
-  const API_KEY = process.env.RAWG_API_KEY;
-  try {
-    const response = await axios.get(`${RAWG_API_URL}/games`, {
-      params: {
-        ...filters,
-        key: API_KEY,
-        page,
-        page_size: pageSize
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error filtering games:', error);
-    throw error;
-  }
+  return requestRawg('/games', { ...filters, page, page_size: Math.min(pageSize, 40) });
 };
 
 export const syncGameWithRawg = async (rawgId) => {

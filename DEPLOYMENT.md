@@ -8,6 +8,8 @@ El visitante obtiene un JWT individual de una hora y un perfil inicial. No compa
 
 El frontend usa `VITE_API_URL=https://<backend>/api`. Esta variable es una URL pública, nunca una credencial. Netlify requiere redirigir rutas de la SPA a `index.html`.
 
+Para usar el catálogo real, configura `RAWG_API_KEY` como secreto del backend y cambia `DEMO_CATALOG` a `false`, conservando `DEMO_MODE=true`. El catálogo general y la búsqueda por título consultan RAWG. Los filtros por plataforma y género operan sobre los juegos guardados en MongoDB. Los favoritos siguen asociados a cada perfil temporal.
+
 Verificación: `npm test` y `node tests/demo.integration.mjs`. El segundo utiliza MongoDB temporal descargado desde su fuente oficial, HTTP real, JWT y modelos originales; nunca conecta a la base histórica. `/api/health` confirma proceso HTTP, no prueba por sí solo disponibilidad de MongoDB.
 
 La limpieza del código no acredita que antiguos equipos o despliegues estén limpios. Revocar las credenciales de prueba que sigan activas y reemplazarlas antes de publicar.
