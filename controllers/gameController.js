@@ -1,6 +1,7 @@
 import { searchGames, getGameDetails, getGamesByFilters, browseRawg } from '../services/rawgService.js';
 import { demoGames } from '../services/demoCatalog.js';
 import { browseIgdb } from '../services/igdbService.js';
+import { browseFreeToGame } from '../services/freeToGameService.js';
 import Game from '../models/Game.js';
 import Profile from '../models/Profile.js';
 import { literalPattern } from '../middleware/gameQuery.js';
@@ -367,6 +368,9 @@ export const getAllGames = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, search = '', genre = '', platform = '' } = req.query;
     const query = {};
+    if (req.path === '/public' && process.env.GAME_CATALOG_PROVIDER === 'freetogame') {
+      return res.json(await browseFreeToGame({ page: Number(page), pageSize: Number(pageSize), search, genre, platform }));
+    }
     if (req.path === '/public' && process.env.GAME_CATALOG_PROVIDER === 'igdb') {
       if (genre || platform || Number(pageSize) > 40) {
         query.igdbId = { $exists: true };
