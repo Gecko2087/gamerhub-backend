@@ -13,7 +13,8 @@ r.get('/me', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
-    res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role,
+      ...(req.user.demo && user.demoExpiresAt ? { expiresAt: user.demoExpiresAt } : {}) });
   } catch (error) {
     console.error('Error al obtener usuario autenticado:', error);
     res.status(500).json({ error: 'Error al obtener usuario autenticado' });

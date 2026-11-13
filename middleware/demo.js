@@ -12,12 +12,16 @@ export async function demoBoundary(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Iniciá tu espacio de demostración.' });
   let actor;
   try { actor = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] }); }
-  catch { return res.status(401).json({ error: 'Tu sesión venció.' }); }
+  catch { return res.status(401).json({ code: 'DEMO_SESSION_EXPIRED', error: 'Tu sesión venció.' }); }
   if (!actor.demo || actor.role !== 'user') return res.status(403).json({ error: 'Sesión no habilitada para la demo.' });
   try {
     const allowed = await User.findOneAndUpdate({ _id: actor.userId, role: 'user',
       demoExpiresAt: { $gt: new Date() }, demoRequests: { $lt: 250 } }, { $inc: { demoRequests: 1 } }, { new: true });
-    if (!allowed) return res.status(429).json({ error: 'Tu espacio venció o alcanzó su límite.' });
+    if (!allowed) {
+      const active = await User.exists({ _id: actor.userId, role: 'user', demoExpiresAt: { $gt: new Date() } });
+      if (!active) return res.status(401).json({ code: 'DEMO_SESSION_EXPIRED', error: 'Tu sesión venció.' });
+      return res.status(429).json({ code: 'DEMO_REQUEST_LIMIT', error: 'Tu espacio alcanzó su límite de solicitudes.' });
+    }
     req.user = actor;
     return next();
   } catch (error) { next(error); }

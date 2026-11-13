@@ -30,6 +30,9 @@ try {
   const b = await call('/auth/demo', { method: 'POST' });
   assert.equal(a.response.status, 201); assert.equal(b.response.status, 201);
   assert.notEqual(a.data.user.id, b.data.user.id);
+  const restored = await call('/auth/me', { token: a.data.token });
+  assert.equal(restored.response.status, 200);
+  assert.equal(restored.data.expiresAt, a.data.expiresAt);
   const own = await call('/profiles', { token: a.data.token });
   const foreign = await call('/profiles', { token: b.data.token });
   assert.equal(own.data.length, 1); assert.equal(foreign.data.length, 1);
@@ -55,9 +58,13 @@ try {
     assert.equal((await call(path, { token: a.data.token })).response.status, 400);
   }
   await User.updateOne({ _id: a.data.user.id }, { $set: { demoRequests: 250 } });
-  assert.equal((await call('/profiles', { token: a.data.token })).response.status, 429);
+  const limited = await call('/profiles', { token: a.data.token });
+  assert.equal(limited.response.status, 429);
+  assert.equal(limited.data.code, 'DEMO_REQUEST_LIMIT');
   await User.updateOne({ _id: b.data.user.id }, { $set: { demoExpiresAt: new Date(0) } });
-  assert.equal((await call('/profiles', { token: b.data.token })).response.status, 429);
+  const expired = await call('/profiles', { token: b.data.token });
+  assert.equal(expired.response.status, 401);
+  assert.equal(expired.data.code, 'DEMO_SESSION_EXPIRED');
   await DemoBudget.updateMany({}, { $set: { sessions: 100 } });
   assert.equal((await call('/auth/demo', { method: 'POST' })).response.status, 429);
   console.log('PASS: actual HTTP + MongoDB, separate JWT visitors, foreign profile denial, owner persistence, quotas and expiry.');
